@@ -116,22 +116,15 @@ model Share {
 }
 // prisma/models/user.prisma
 model User {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  role          UserRole  @default(client) // "owner" or "client"
-
-  // Relationships
-  accounts      Account[]
-  sessions      Session[]
-
-  clientId      String?   @db.ObjectId
-  client        Client?   @relation
-
-  ownerId       String?   @db.ObjectId
-  owner         Owner?    @relation
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  name         String?
+  email        String?   @unique
+  password     String?
+  plan         String    @default("FREE_PLAN") // Subscription plan (e.g., FREE_PLAN, PREMIUM_PLAN)
+  galleryCount Int       @default(0) // Number of galleries created by the user
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  galleries    Gallery[] // Relationship to galleries
 }
 // prisma/models/enums.prisma
 enum UserRole {

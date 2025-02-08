@@ -1,12 +1,15 @@
-// app/actions/seedData.ts
 "use server"; // Indicates this is a Server Action
-
 import { faker } from "@faker-js/faker";
 import db from "../lib/prisma";
 
 export async function seedDatabase() {
   try {
     console.log("Starting database seeding process...");
+
+    // Step 0: Delete Existing Data
+    console.log("Deleting existing data...");
+    await deleteExistingData();
+    console.log("Existing data deleted successfully.");
 
     // Step 1: Create Owners and Users
     console.log("Creating Owners...");
@@ -52,13 +55,22 @@ export async function seedDatabase() {
   } catch (error) {
     console.error("Error seeding database:", error);
     return { success: false, message: "Failed to seed database." };
-  } finally {
-    // No need to disconnect explicitly since the singleton handles it
   }
 }
 
-// Helper Functions
+// Helper Function to Delete Existing Data
+async function deleteExistingData() {
+  await db.share.deleteMany({});
+  await db.reaction.deleteMany({});
+  await db.comment.deleteMany({});
+  await db.item.deleteMany({});
+  await db.gallery.deleteMany({});
+  await db.client.deleteMany({});
+  await db.owner.deleteMany({});
+  await db.user.deleteMany({}); // Ensure users are also deleted
+}
 
+// Helper Functions
 async function createOwners(count: number) {
   const owners = [];
   for (let i = 0; i < count; i++) {
