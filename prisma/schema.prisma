@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  //  previewFeatures = ["prismaSchemaFolder"]
 }
 
 datasource db {
@@ -14,154 +7,185 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// prisma/models/gallery.prisma
-model Gallery {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  description String?
-  ownerId     String   @db.ObjectId // Owner of the gallery
-  isActive    Boolean  @default(true) // Active status of the gallery
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  // Relationships
-  owner       Owner    @relation(fields: [ownerId], references: [id])
-  items       Item[]
-}
-// prisma/models/item.prisma
-model Item {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId // Unique ID for the item
-  title     String   // Title of the item
-  mediaUrl  String   // URL to the image/video file
-  galleryId String   @db.ObjectId // ID of the gallery this item belongs to
+// ====================
+// AUTHENTICATION MODELS
+// ====================
 
-  // Relationships
-  gallery  Gallery   @relation(fields: [galleryId], references: [id]) // Links to the Gallery model
-  comments Comment[] // Comments on this item
-  reactions Reaction[] // Reactions on this item
-  shares   Share[]   // Shares of this item
-}
-
-// prisma/models/nextauth.prisma
+/// Represents an OAuth account linked to a user.
 model Account {
-  id                String  @id @default(auto()) @map("_id") @db.ObjectId
-  userId            String  @db.ObjectId
-  type              String
-  provider          String
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String   @db.ObjectId
+  type              String   @default("oauth")
+  provider          String   @default("google")
   providerAccountId String
-  refresh_token     String? @db.String
-  access_token      String? @db.String
+  refresh_token     String?  @db.String
+  access_token      String?  @db.String
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.String
+  id_token          String?  @db.String
   session_state     String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Relationship to the User model
+  user User @relation(fields: [userId], references: [id])
 
   @@unique([provider, providerAccountId])
 }
 
+/// Represents a user session.
 model Session {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   sessionToken String   @unique
   userId       String   @db.ObjectId
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Relationship to the User model
+  user User @relation(fields: [userId], references: [id])
 }
 
+/// Represents a verification token for email verification.
 model VerificationToken {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  identifier  String
-  token       String   @unique
-  expires     DateTime
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
 
   @@unique([identifier, token])
 }
-model Owner {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  contactInfo String?
-  socialMedia Json?
-  message     String?
 
-  userId      String   @db.ObjectId @unique
-  user        User     @relation(fields: [userId], references: [id]) // Fields/references here
+// ====================
+// USER ROLES AND RELATIONSHIPS
+// ====================
 
-  galleries   Gallery[]
-}
-// prisma/models/reaction.prisma
-model Reaction {
-  id       String   @id @default(auto()) @map("_id") @db.ObjectId // Unique ID for the reaction
-  emoji    String   // Emoji type (e.g., "❤️", "👍")
-  count    Int      @default(1) // Number of times this emoji was used
-  itemId   String   @db.ObjectId // ID of the item this reaction belongs to
-  clientId String   @db.ObjectId // ID of the client who reacted
-
-  // Relationships
-  item   Item   @relation(fields: [itemId], references: [id]) // Links to the Item model
-  client Client @relation(fields: [clientId], references: [id]) // Links to the Client model
-
-  @@unique([itemId, clientId, emoji]) // Ensures one client can only react once per emoji
-}
-// prisma/models/share.prisma
-model Share {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId // Unique ID for the share
-  itemId    String   @db.ObjectId // ID of the item being shared
-  clientId  String   @db.ObjectId // ID of the client who shared the item
-  shareType ShareType // Type of share: "private", "public", or "invite"
-  shareLink String?  // Public share link (generated for public shares)
-
-  // Relationships
-  item   Item   @relation(fields: [itemId], references: [id]) // Links to the Item model
-  client Client @relation(fields: [clientId], references: [id]) // Links to the Client model
-}
-// prisma/models/user.prisma
+/// Represents a system user (either an owner or a client).
 model User {
   id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  name          String?
+  name          String?   @default("Unknown User")
   email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  role          UserRole  @default(client) // "owner" or "client"
+  emailVerified DateTime? @default(now())
+  image         String?   @default("https://via.placeholder.com/150")
+  role          UserRole  @default(client)
 
-  // Relationships
+  /// Relationships
   accounts      Account[]
   sessions      Session[]
-
-  clientId      String?   @db.ObjectId
-  client        Client?   @relation
-
-  ownerId       String?   @db.ObjectId
-  owner         Owner?    @relation
+  client        Client?   @relation(name: "ClientToUser")
+  owner         Owner?    @relation(name: "OwnerToUser")
 }
-// prisma/models/enums.prisma
+
 enum UserRole {
-  owner  // Represents an app owner
-  client // Represents a regular client
+  owner
+  client
 }
 
-enum ShareType {
-  private // Item shared privately with specific users
-  public  // Item shared publicly via a link
-  invite  // Item shared via invitation (e.g., email)
-}
-// prisma/models/comment.prisma
-model Comment {
-  id       String   @id @default(auto()) @map("_id") @db.ObjectId // Unique ID for the comment
-  text     String   // Text content of the comment
-  itemId   String   @db.ObjectId // ID of the item this comment belongs to
-  clientId String   @db.ObjectId // ID of the client who made the comment
+// ====================
+// OWNER-SPECIFIC MODELS
+// ====================
 
-  // Relationships
-  item   Item   @relation(fields: [itemId], references: [id]) // Links to the Item model
-  client Client @relation(fields: [clientId], references: [id]) // Links to the Client model
+/// Represents a business owner who manages galleries.
+model Owner {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  contactInfo String?   @default("")
+  socialMedia Json?     @default("{}")
+  message     String?   @default("")
+  userId      String    @unique @db.ObjectId
+
+  /// Relationships
+  user      User?     @relation(fields: [userId], references: [id], name: "OwnerToUser")
+  galleries Gallery[] @relation("OwnerToGallery")
 }
 
+/// Represents a gallery created by an owner.
+model Gallery {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  title            String   @default("Untitled Gallery")
+  description      String   @default("Untitled Gallery")
+  cloudinaryFolder String   @default("default-folder") // Default Cloudinary folder
+  folder           String?  // Specific folder for this gallery (optional)
+  ownerId          String   @db.ObjectId
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  /// Relationships
+  owner Owner? @relation(fields: [ownerId], references: [id], name: "OwnerToGallery")
+  items Item[] @relation("GalleryToItems")
+}
+
+// ====================
+// CLIENT-SPECIFIC MODELS
+// ====================
+
+/// Represents a client who interacts with galleries.
 model Client {
-  id       String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId   String   @db.ObjectId @unique
-  user     User     @relation(fields: [userId], references: [id]) // Fields/references here
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId   String    @unique @db.ObjectId
 
+  /// Relationships
+  user      User?     @relation(fields: [userId], references: [id], name: "ClientToUser")
   comments  Comment[]
   reactions Reaction[]
   shares    Share[]
+}
+
+// ====================
+// GALLERY CONTENT MODELS
+// ====================
+
+/// Represents an item in a gallery (e.g., image or video).
+model Item {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  title     String    @default("Untitled Item")
+  mediaUrl  String    @default("https://via.placeholder.com/150")
+  galleryId String    @db.ObjectId
+
+  /// Relationships
+  gallery   Gallery   @relation(fields: [galleryId], references: [id], name: "GalleryToItems")
+  comments  Comment[]
+  reactions Reaction[]
+  shares    Share[]
+}
+
+/// Represents a comment made by a client on an item.
+model Comment {
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  text     String    @default("Default comment text")
+  itemId   String    @db.ObjectId
+  clientId String    @db.ObjectId
+
+  /// Relationships
+  item   Item    @relation(fields: [itemId], references: [id])
+  client Client  @relation(fields: [clientId], references: [id])
+}
+
+/// Represents a reaction (emoji) made by a client on an item.
+model Reaction {
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  emoji    String    @default("👍")
+  itemId   String    @db.ObjectId
+  clientId String    @db.ObjectId
+
+  /// Relationships
+  item   Item    @relation(fields: [itemId], references: [id])
+  client Client  @relation(fields: [clientId], references: [id])
+
+  @@unique([itemId, clientId, emoji])
+}
+
+/// Represents a share action performed by a client on an item.
+model Share {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  itemId    String    @db.ObjectId
+  clientId  String    @db.ObjectId
+  shareType ShareType @default(public)
+  shareLink String?   @default("https://example.com/share")
+
+  /// Relationships
+  item   Item    @relation(fields: [itemId], references: [id])
+  client Client  @relation(fields: [clientId], references: [id])
+}
+
+enum ShareType {
+  private
+  public
+  invite
 }

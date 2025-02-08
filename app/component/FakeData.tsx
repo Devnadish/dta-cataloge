@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { Button } from "../../components/ui/button";
-import { seedDatabase } from "../../utils/fakedata";
+import { seedDatabase } from "../../script/fakedata";
 
 function FakeData() {
   const seedData = async () => {

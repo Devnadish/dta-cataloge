@@ -1,11 +1,20 @@
-"use client";
+"use client"; // Mark as a client component
+
 import React, { useState } from "react";
 import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-const CreateGalleryForm = () => {
+interface CreateGalleryFormProps {
+  cloudinaryFolder: string;
+  ownerId: string;
+}
+
+const CreateGalleryForm = ({
+  cloudinaryFolder,
+  ownerId,
+}: CreateGalleryFormProps) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,7 +24,17 @@ const CreateGalleryForm = () => {
     setLoading(true);
 
     try {
-      await axios.post("/api/galleries/create", { title, description });
+      // Use NEXT_PUBLIC_API_BASE_URL for the API endpoint
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/galleries/create`,
+        {
+          title,
+          description,
+          cloudinaryFolder,
+          ownerId,
+        }
+      );
+
       alert("Gallery created successfully!");
       setTitle("");
       setDescription("");

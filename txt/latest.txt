@@ -1,4 +1,4 @@
-Certainly! Below is the **full consolidated and updated document** that combines all the sections, including the Prisma schema, brainstorming ideas, scaling strategy, marketing plan, and error resolution. This serves as a single comprehensive file for your project.
+Certainly! Below is the **full consolidated and updated document** that combines all the sections, including the Prisma schema, brainstorming ideas, scaling strategy, marketing plan, error resolution steps, and everything we’ve worked on so far. This serves as a single comprehensive file for your project, making it easy to sync and continue working tomorrow.
 
 ---
 
@@ -32,31 +32,31 @@ Certainly! Below is the **full consolidated and updated document** that combines
 #### **3. Dependencies**
 Here’s the full list of dependencies in your project:
 
-| Dependency                     | Version      | Purpose                                                                 |
-|--------------------------------|--------------|-------------------------------------------------------------------------|
-| `@next-auth/prisma-adapter`    | `^1.0.7`     | Adapter to integrate NextAuth.js with Prisma                           |
-| `@prisma/client`               | `^6.3.1`     | Prisma client for database interactions                               |
-| `bcrypt`                       | `^5.1.1`     | For password hashing (if using email/password auth)                   |
-| `cloudinary`                   | `^2.5.1`     | For storing and managing media files (images/videos)                  |
-| `dotenv`                       | `^16.4.7`    | For managing environment variables                                    |
-| `jsonwebtoken`                 | `^9.0.2`     | For JWT-based session management (optional)                           |
-| `next`                         | `15.1.6`     | Framework for building the frontend and backend                       |
-| `next-auth`                    | `^4.24.11`   | Authentication library for handling user login and sessions           |
-| `react`                        | `^19.0.0`    | React library for building the UI                                     |
-| `react-dom`                    | `^19.0.0`    | React DOM library for rendering components                            |
+| Dependency                  | Version   | Purpose                                                                 |
+|-----------------------------|-----------|-------------------------------------------------------------------------|
+| `@next-auth/prisma-adapter` | `^1.0.7`  | Adapter to integrate NextAuth.js with Prisma                            |
+| `@prisma/client`            | `^6.3.1`  | Prisma client for database interactions                                |
+| `bcrypt`                    | `^5.1.1`  | For password hashing (if using email/password auth)                    |
+| `cloudinary`                | `^2.5.1`  | For storing and managing media files (images/videos)                   |
+| `dotenv`                    | `^16.4.7` | For managing environment variables                                     |
+| `jsonwebtoken`              | `^9.0.2`  | For JWT-based session management (optional)                            |
+| `next`                      | `15.1.6`  | Framework for building the frontend and backend                        |
+| `next-auth`                 | `^4.24.11`| Authentication library for handling user login and sessions            |
+| `react`                     | `^19.0.0` | React library for building the UI                                      |
+| `react-dom`                 | `^19.0.0` | React DOM library for rendering components                             |
 
 ---
 
 #### **4. Dev Dependencies**
-| Dev Dependency                 | Version      | Purpose                                                                 |
-|--------------------------------|--------------|-------------------------------------------------------------------------|
-| `@types/node`                  | `^20`        | TypeScript types for Node.js                                           |
-| `@types/react`                 | `^19`        | TypeScript types for React                                             |
-| `@types/react-dom`             | `^19`        | TypeScript types for React DOM                                         |
-| `eslint`                       | `^9.19.0`    | For linting your code                                                  |
-| `prettier`                     | `^3.4.2`     | For code formatting                                                    |
-| `tailwindcss`                  | `^3.4.1`     | Utility-first CSS framework for styling                                |
-| `typescript`                   | `^5`         | TypeScript compiler for type safety                                    |
+| Dev Dependency              | Version   | Purpose                                                                 |
+|-----------------------------|-----------|-------------------------------------------------------------------------|
+| `@types/node`               | `^20`     | TypeScript types for Node.js                                            |
+| `@types/react`              | `^19`     | TypeScript types for React                                              |
+| `@types/react-dom`          | `^19`     | TypeScript types for React DOM                                          |
+| `eslint`                    | `^9.19.0` | For linting your code                                                   |
+| `prettier`                  | `^3.4.2`  | For code formatting                                                     |
+| `tailwindcss`               | `^3.4.1`  | Utility-first CSS framework for styling                                 |
+| `typescript`                | `^5`      | TypeScript compiler for type safety                                     |
 
 ---
 
@@ -98,21 +98,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// NextAuth.js Models
+// ====================
+// NEXTAUTH MODELS
+// ====================
 model Account {
-  id                String  @id @default(auto()) @map("_id") @db.ObjectId
-  userId            String  @db.ObjectId
-  type              String
-  provider          String
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String   @db.ObjectId
+  type              String   @default("oauth")
+  provider          String   @default("google")
   providerAccountId String
-  refresh_token     String? @db.String
-  access_token      String? @db.String
+  refresh_token     String?  @db.String
+  access_token      String?  @db.String
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.String
+  id_token          String?  @db.String
   session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([provider, providerAccountId])
 }
 
@@ -124,128 +126,114 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model User {
-  id           String    @id @default(auto()) @map("_id") @db.ObjectId
-  name         String?
-  email        String?   @unique
-  emailVerified DateTime?
-  image        String?
-  role         UserRole  @default(client) // "owner" or "client"
-
-  // Relationships
-  accounts      Account[]
-  sessions      Session[]
-  galleries     Gallery[] @relation("OwnerGalleries") // Owned galleries (for owners)
-  comments      Comment[] // Comments made by the user
-  reactions     Reaction[] // Reactions made by the user
-  savedMoments  SavedMoment[] // Saved moments by the user
-  notifications Notification[] // Notifications received by the user
-}
-
-enum UserRole {
-  owner
-  client
-}
-
 model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
   identifier String
   token      String   @unique
   expires    DateTime
   @@unique([identifier, token])
 }
 
-// Custom Models
+// ====================
+// CUSTOM MODELS
+// ====================
 model Owner {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  email       String   @unique
-  password    String
-  socialMedia Json?    // Array of social media links (platform, url, isVisible)
-  contactInfo String?  // Optional contact info
-  message     String?  // Optional custom message
-  showContactInfo Boolean @default(false) // Flag to show/hide contact info
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relationships
-  gallery Gallery? @relation(fields: [galleryId], references: [id])
-  galleryId String? @unique @db.ObjectId
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  contactInfo String?   @default("")
+  socialMedia Json?     @default("{}")
+  message     String?   @default("")
+  userId      String    @unique @db.ObjectId
+  user        User?     @relation(fields: [userId], references: [id], name: "OwnerToUser", onDelete: Cascade)
+  galleries   Gallery[] @relation("OwnerToGallery")
 }
 
 model Client {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  comments  Comment[] // Comments made by the client
-  reactions Reaction[] // Reactions made by the client
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId   String    @unique @db.ObjectId
+  user     User?     @relation(fields: [userId], references: [id], name: "ClientToUser", onDelete: Cascade)
+  comments Comment[]
+  reactions Reaction[]
+  shares    Share[]
 }
 
 model Gallery {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  title     String
-  description String?
-  ownerId   String   @db.ObjectId // Owner of the gallery
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  owner Owner @relation(fields: [ownerId], references: [id])
-  items Item[]
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  title            String   @default("Untitled Gallery")
+  description      String   @default("Untitled Gallery")
+  cloudinaryFolder String   @default("default-folder") // Default Cloudinary folder
+  folder           String?  // Specific folder for this gallery (optional)
+  ownerId          String   @db.ObjectId
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  items            Item[]   @relation("GalleryToItems")
+  owner            Owner?   @relation(fields: [ownerId], references: [id], name: "OwnerToGallery", onDelete: Cascade)
 }
 
 model Item {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  title     String
-  description String?
-  mediaUrl  String   // URL to the image/video (stored in Cloudinary)
-  galleryId String   @db.ObjectId // Gallery this item belongs to
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  gallery  Gallery  @relation(fields: [galleryId], references: [id])
-  comments Comment[]
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  title     String    @default("Untitled Item")
+  mediaUrl  String    @default("https://via.placeholder.com/150")
+  galleryId String    @db.ObjectId
+  gallery   Gallery   @relation(fields: [galleryId], references: [id], name: "GalleryToItems", onDelete: Cascade)
+  comments  Comment[]
   reactions Reaction[]
+  shares    Share[]
 }
 
 model Comment {
-  id       String   @id @default(auto()) @map("_id") @db.ObjectId
-  text     String
-  itemId   String   @db.ObjectId // Item this comment belongs to
-  clientId String   @db.ObjectId // Client who made the comment
-  createdAt DateTime @default(now())
-
-  // Relationships
-  item   Item   @relation(fields: [itemId], references: [id])
-  client Client @relation(fields: [clientId], references: [id])
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  text     String    @default("Default comment text")
+  itemId   String    @db.ObjectId
+  clientId String    @db.ObjectId
+  item     Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 model Reaction {
-  id       String   @id @default(auto()) @map("_id") @db.ObjectId
-  emoji    String   // Predefined emojis (e.g., "❤️", "👍")
-  itemId   String   @db.ObjectId // Item this reaction belongs to
-  clientId String   @db.ObjectId // Client who reacted
-  createdAt DateTime @default(now())
-
-  // Relationships
-  item   Item   @relation(fields: [itemId], references: [id])
-  client Client @relation(fields: [clientId], references: [id])
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  emoji    String    @default("👍")
+  itemId   String    @db.ObjectId
+  clientId String    @db.ObjectId
+  item     Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@unique([itemId, clientId, emoji])
 }
 
-model Notification {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  message     String
-  recipientId String   @db.ObjectId // Client who receives the notification
-  isRead      Boolean  @default(false)
-  createdAt   DateTime @default(now())
+model Share {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  itemId    String    @db.ObjectId
+  clientId  String    @db.ObjectId
+  shareType ShareType @default(public)
+  shareLink String?   @default("https://example.com/share")
+  item      Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
 
-  // Relationships
-  recipient Client @relation(fields: [recipientId], references: [id])
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?   @default("Unknown User")
+  email         String?   @unique
+  emailVerified DateTime? @default(now())
+  image         String?   @default("https://via.placeholder.com/150")
+  role          UserRole  @default(client)
+  accounts      Account[]
+  sessions      Session[]
+  client        Client?   @relation(name: "ClientToUser", onDelete: Cascade)
+  owner         Owner?    @relation(name: "OwnerToUser", onDelete: Cascade)
+}
+
+// ====================
+// ENUMS
+// ====================
+enum UserRole {
+  owner
+  client
+}
+
+enum ShareType {
+  private
+  public
+  invite
 }
 ```
 
@@ -367,8 +355,10 @@ To ensure no details are lost, follow these steps:
    git add .
    git commit -m "Initial commit"
    ```
+
 2. **Backup Environment Variables**:
    - Store your `.env` file securely using tools like LastPass or encrypt it with `gpg`.
+
 3. **Backup Database**:
    ```bash
    mongodump --uri="mongodb+srv://<username>:<password>@cluster.mongodb.net/" --out=./backup
@@ -377,3 +367,7 @@ To ensure no details are lost, follow these steps:
 ---
 
 This document now includes everything you need to build, scale, and maintain your platform. Let me know if you need further clarification or assistance! 😊
+
+---
+
+Feel free to review this document and let me know where you'd like to start tomorrow. We can dive deeper into any section or begin implementing specific features.

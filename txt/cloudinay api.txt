@@ -1,0 +1,268 @@
+Got it! Below is the **Cloudinary API Cheat Sheet** formatted as a text file. You can copy and paste this into a `.txt` file and save it for future reference.
+
+---
+
+### **Cloudinary API Cheat Sheet**
+
+#### **1. Base URL**
+All Cloudinary API requests use the following base URL:
+```
+https://api.cloudinary.com/v1_1/<CLOUD_NAME>/<RESOURCE_TYPE>/<ACTION>
+```
+- `<CLOUD_NAME>`: Your Cloudinary cloud name.
+- `<RESOURCE_TYPE>`: `image`, `video`, `raw`, or `auto`.
+- `<ACTION>`: The specific API action (e.g., `upload`, `folders`, `destroy`).
+
+---
+
+#### **2. Authentication**
+Cloudinary uses **Basic Authentication** with your `API_KEY` and `API_SECRET`.
+
+##### Example with `axios`:
+```js
+const axios = require('axios');
+
+const CLOUD_NAME = 'your_cloud_name';
+const API_KEY = 'your_api_key';
+const API_SECRET = 'your_api_secret';
+
+const auth = {
+  username: API_KEY,
+  password: API_SECRET,
+};
+```
+
+---
+
+#### **3. Media Upload**
+
+##### **Upload an Image/Video**
+```
+POST /v1_1/<CLOUD_NAME>/<RESOURCE_TYPE>/upload
+```
+
+##### Example:
+```js
+const uploadFile = async (filePath) => {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+
+  const formData = new FormData();
+  formData.append('file', filePath);
+  formData.append('upload_preset', 'your_upload_preset'); // Optional
+
+  try {
+    const response = await axios.post(url, formData, { auth });
+    console.log('Uploaded file:', response.data);
+  } catch (error) {
+    console.error('Error uploading file:', error.response?.data || error.message);
+  }
+};
+```
+
+---
+
+#### **4. Folder Management**
+
+##### **Create a Folder**
+```
+POST /v1_1/<CLOUD_NAME>/folders/<FOLDER_PATH>
+```
+
+##### Example:
+```js
+const createFolder = async (folderPath) => {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/folders/${folderPath}`;
+
+  try {
+    const response = await axios.post(url, {}, { auth });
+    console.log('Folder created:', response.data);
+  } catch (error) {
+    console.error('Error creating folder:', error.response?.data || error.message);
+  }
+};
+```
+
+##### **List Folders**
+```
+GET /v1_1/<CLOUD_NAME>/folders
+```
+
+##### Example:
+```js
+const listFolders = async () => {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/folders`;
+
+  try {
+    const response = await axios.get(url, { auth });
+    console.log('Folders:', response.data);
+  } catch (error) {
+    console.error('Error listing folders:', error.response?.data || error.message);
+  }
+};
+```
+
+---
+
+#### **5. Media Asset Management**
+
+##### **Delete an Asset**
+```
+DELETE /v1_1/<CLOUD_NAME>/<RESOURCE_TYPE>/destroy
+```
+
+##### Example:
+```js
+const deleteAsset = async (publicId) => {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/destroy`;
+
+  try {
+    const response = await axios.post(
+      url,
+      { public_id: publicId },
+      { auth }
+    );
+    console.log('Asset deleted:', response.data);
+  } catch (error) {
+    console.error('Error deleting asset:', error.response?.data || error.message);
+  }
+};
+```
+
+##### **Rename an Asset**
+```
+POST /v1_1/<CLOUD_NAME>/<RESOURCE_TYPE>/rename
+```
+
+##### Example:
+```js
+const renameAsset = async (fromPublicId, toPublicId) => {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/rename`;
+
+  try {
+    const response = await axios.post(
+      url,
+      { from_public_id: fromPublicId, to_public_id: toPublicId },
+      { auth }
+    );
+    console.log('Asset renamed:', response.data);
+  } catch (error) {
+    console.error('Error renaming asset:', error.response?.data || error.message);
+  }
+};
+```
+
+---
+
+#### **6. Transformations**
+
+Transformations are applied by appending query parameters to the asset URL.
+
+##### Example:
+```js
+const transformedUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/w_300,h_200,c_fill/${PUBLIC_ID}.jpg`;
+console.log('Transformed URL:', transformedUrl);
+```
+
+- `w_300`: Width of 300px.
+- `h_200`: Height of 200px.
+- `c_fill`: Crop mode (fill).
+
+---
+
+#### **7. Search API**
+
+##### **Search Assets**
+```
+POST /v1_1/<CLOUD_NAME>/resources/search
+```
+
+##### Example:
+```js
+const searchAssets = async (query) => {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/resources/search`;
+
+  try {
+    const response = await axios.post(
+      url,
+      { expression: query }, // e.g., "resource_type:image AND tags=nature"
+      { auth }
+    );
+    console.log('Search results:', response.data);
+  } catch (error) {
+    console.error('Error searching assets:', error.response?.data || error.message);
+  }
+};
+```
+
+---
+
+#### **8. Tags and Metadata**
+
+##### **Add Tags to an Asset**
+```
+POST /v1_1/<CLOUD_NAME>/<RESOURCE_TYPE>/tags
+```
+
+##### Example:
+```js
+const addTags = async (publicId, tags) => {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/tags`;
+
+  try {
+    const response = await axios.post(
+      url,
+      { public_ids: [publicId], tags },
+      { auth }
+    );
+    console.log('Tags added:', response.data);
+  } catch (error) {
+    console.error('Error adding tags:', error.response?.data || error.message);
+  }
+};
+```
+
+---
+
+#### **9. Usage Statistics**
+
+##### **Get Usage Report**
+```
+GET /v1_1/<CLOUD_NAME>/usage
+```
+
+##### Example:
+```js
+const getUsage = async () => {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/usage`;
+
+  try {
+    const response = await axios.get(url, { auth });
+    console.log('Usage report:', response.data);
+  } catch (error) {
+    console.error('Error fetching usage:', error.response?.data || error.message);
+  }
+};
+```
+
+---
+
+#### **10. Common Parameters**
+
+| Parameter          | Description                                      | Example                     |
+|--------------------|--------------------------------------------------|-----------------------------|
+| `public_id`        | Unique identifier for the asset                 | `my_image.jpg`              |
+| `upload_preset`    | Predefined settings for uploads                 | `preset_name`               |
+| `tags`             | Comma-separated list of tags                    | `nature,landscape`          |
+| `transformation`   | Image/video transformation parameters           | `w_300,h_200,c_fill`        |
+| `resource_type`    | Type of resource (`image`, `video`, `raw`)       | `image`                     |
+
+---
+
+#### **11. Resources**
+- **Documentation**: [Cloudinary API Reference](https://cloudinary.com/documentation/api_reference)
+- **SDKs**: [Cloudinary SDKs](https://cloudinary.com/documentation/sdks)
+- **Transformations**: [Transformation Guide](https://cloudinary.com/documentation/image_transformations)
+
+---
+
+This cheat sheet provides quick access to the most commonly used Cloudinary APIs. Save it as a `.txt` file for easy reference! 😊

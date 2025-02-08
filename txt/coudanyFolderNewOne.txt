@@ -1,0 +1,24 @@
+const axios = require('axios');
+
+const CLOUD_NAME = 'your_cloud_name';
+const API_KEY = 'your_api_key';
+const API_SECRET = 'your_api_secret';
+
+const createFolder = async (folderName) => {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/folders/${folderName}`;
+  
+  try {
+    const response = await axios.post(url, {}, {
+      auth: {
+        username: API_KEY,
+        password: API_SECRET,
+      },
+    });
+    console.log('Folder created successfully:', response.data);
+  } catch (error) {
+    console.error('Error creating folder:', error.response.data);
+  }
+};
+
+// Call the function with the desired folder name
+createFolder('my_new_folder');
