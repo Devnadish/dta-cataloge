@@ -1,0 +1,12 @@
+// prisma/models/share.prisma
+model Share {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId // Unique ID for the share
+  itemId    String   @db.ObjectId // ID of the item being shared
+  clientId  String   @db.ObjectId // ID of the client who shared the item
+  shareType ShareType // Type of share: "private", "public", or "invite"
+  shareLink String?  // Public share link (generated for public shares)
+
+  // Relationships
+  item   Item   @relation(fields: [itemId], references: [id]) // Links to the Item model
+  client Client @relation(fields: [clientId], references: [id]) // Links to the Client model
+}

@@ -1,0 +1,9 @@
+model Client {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId   String   @db.ObjectId @unique
+  user     User     @relation(fields: [userId], references: [id]) // Fields/references here
+
+  comments  Comment[]
+  reactions Reaction[]
+  shares    Share[]
+}

@@ -1,0 +1,14 @@
+// prisma/models/reaction.prisma
+model Reaction {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId // Unique ID for the reaction
+  emoji    String   // Emoji type (e.g., "❤️", "👍")
+  count    Int      @default(1) // Number of times this emoji was used
+  itemId   String   @db.ObjectId // ID of the item this reaction belongs to
+  clientId String   @db.ObjectId // ID of the client who reacted
+
+  // Relationships
+  item   Item   @relation(fields: [itemId], references: [id]) // Links to the Item model
+  client Client @relation(fields: [clientId], references: [id]) // Links to the Client model
+
+  @@unique([itemId, clientId, emoji]) // Ensures one client can only react once per emoji
+}

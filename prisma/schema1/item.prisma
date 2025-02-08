@@ -1,0 +1,13 @@
+// prisma/models/item.prisma
+model Item {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId // Unique ID for the item
+  title     String   // Title of the item
+  mediaUrl  String   // URL to the image/video file
+  galleryId String   @db.ObjectId // ID of the gallery this item belongs to
+
+  // Relationships
+  gallery  Gallery   @relation(fields: [galleryId], references: [id]) // Links to the Gallery model
+  comments Comment[] // Comments on this item
+  reactions Reaction[] // Reactions on this item
+  shares   Share[]   // Shares of this item
+}

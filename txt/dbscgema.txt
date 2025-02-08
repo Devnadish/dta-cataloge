@@ -1,0 +1,208 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth.js Models
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(client) // "owner" or "client"
+
+  // Relationships
+  accounts      Account[]
+  sessions      Session[]
+  galleries     Gallery[] @relation("OwnerGalleries") // Owned galleries (for owners)
+  comments      Comment[] // Comments made by the user
+  reactions     Reaction[] // Reactions made by the user
+  savedMoments  SavedMoment[] // Saved moments by the user
+  notifications Notification[] // Notifications received by the user
+  sharedItems   Share[] // Items shared with this user
+  friendships   Friendship[] @relation("ClientFriendships") // Friendships initiated by this user
+  friendOf      Friendship[] @relation("FriendFriendships") // Friendships where this user is the friend
+}
+
+enum UserRole {
+  owner
+  client
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Custom Models
+model Owner {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  email          String    @unique
+  password       String
+  socialMedia    Json?     // Array of social media links (platform, url, isVisible)
+  contactInfo    String?   // Optional contact info
+  message        String?   // Optional custom message
+  showContactInfo Boolean  @default(false) // Flag to show/hide contact info
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relationships
+  gallery Gallery? @relation(fields: [galleryId], references: [id])
+  galleryId String? @unique @db.ObjectId
+}
+
+model Client {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relationships
+  comments  Comment[] // Comments made by the client
+  reactions Reaction[] // Reactions made by the client
+  sharedItems Share[] // Items shared with this client
+  friendships Friendship[] @relation("ClientFriendships") // Friendships initiated by this client
+  friendOf   Friendship[] @relation("FriendFriendships") // Friendships where this client is the friend
+}
+
+model Gallery {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  ownerId     String   @db.ObjectId // Owner of the gallery
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  owner Owner @relation(fields: [ownerId], references: [id])
+  items Item[]
+}
+
+model Item {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  mediaUrl    String    // URL to the image/video (stored in Cloudinary)
+  galleryId   String    @db.ObjectId // Gallery this item belongs to
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relationships
+  gallery  Gallery  @relation(fields: [galleryId], references: [id])
+  comments Comment[]
+  reactions Reaction[]
+  shares   Share[] // Shares associated with this item
+}
+
+model Comment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  text      String
+  itemId    String   @db.ObjectId // Item this comment belongs to
+  clientId  String   @db.ObjectId // Client who made the comment
+  createdAt DateTime @default(now())
+
+  // Relationships
+  item   Item   @relation(fields: [itemId], references: [id])
+  client Client @relation(fields: [clientId], references: [id])
+}
+
+model Reaction {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  itemId    String   @db.ObjectId // Item this reaction belongs to
+  clientId  String   @db.ObjectId // Client who reacted
+  emoji     String   // Emoji type (e.g., "❤️", "👍")
+  count     Int      @default(1) // Number of times this emoji was used
+  createdAt DateTime @default(now())
+
+  // Relationships
+  item   Item   @relation(fields: [itemId], references: [id])
+  client Client @relation(fields: [clientId], references: [id])
+
+  @@unique([itemId, clientId, emoji]) // Ensure one user can only react once per emoji
+}
+
+model Share {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  itemId    String   @db.ObjectId // Item being shared
+  ownerId   String   @db.ObjectId // Original owner of the item
+  sharedBy  String   @db.ObjectId // User (Owner or Client) who shared the item
+  clientId  String?  @db.ObjectId // Client who received the share (optional for public shares)
+  email     String?  // Email of the recipient (for invitations)
+  shareType ShareType // "private", "public", or "invite"
+  shareLink String?  // Public share link (generated for public shares)
+  createdAt DateTime @default(now())
+
+  // Relationships
+  item      Item     @relation(fields: [itemId], references: [id])
+  owner     Owner    @relation(fields: [ownerId], references: [id])
+  sharedByUser User   @relation(name: "SharedByUser", fields: [sharedBy], references: [id]) // Who shared the item
+  client    Client?  @relation(name: "SharedWithClient", fields: [clientId], references: [id]) // Who received the share
+}
+
+enum ShareType {
+  private
+  public
+  invite
+}
+
+model Friendship {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  clientId   String   @db.ObjectId // The client who initiated the friendship
+  friendId   String   @db.ObjectId // The client who is the friend
+  createdAt  DateTime @default(now())
+
+  // Relationships
+  client User @relation(name: "ClientFriendships", fields: [clientId], references: [id])
+  friend User @relation(name: "FriendFriendships", fields: [friendId], references: [id])
+
+  @@unique([clientId, friendId]) // Ensure no duplicate friendships
+}
+
+model Notification {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  message     String
+  recipientId String   @db.ObjectId // Client who receives the notification
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  recipient Client @relation(fields: [recipientId], references: [id])
+}

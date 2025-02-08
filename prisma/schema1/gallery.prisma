@@ -1,0 +1,10 @@
+// prisma/models/gallery.prisma
+model Gallery {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId // Unique ID for the gallery
+  title    String   // Title of the gallery
+  ownerId  String   @db.ObjectId // ID of the owner who owns this gallery
+
+  // Relationships
+  owner    Owner    @relation(fields: [ownerId], references: [id]) // Links to the Owner model
+  items    Item[]   // Items contained in this gallery
+}

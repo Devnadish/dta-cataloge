@@ -1,0 +1,126 @@
+User Roles :
+we will seprate them besaue shold add his socail me and his contat and hi message all is optional with some flage like show data or no
+Gallery Ownership :
+one gallery per user?
+Media Storage : will use cloudinary
+
+Reactions :
+predifind
+
+Notifications :
+will think about it we can add in premum if the client want real-time notify
+Saved Moments :
+added later
+----------------------------------------------------
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// Owner Model
+model Owner {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  email          String    @unique
+  password       String
+  socialMedia    Json?     // Array of social media links (platform, url, isVisible)
+  contactInfo    String?   // Optional contact info
+  message        String?   // Optional custom message
+  showContactInfo Boolean  @default(false) // Flag to show/hide contact info
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relationships
+  gallery Gallery? @relation(fields: [galleryId], references: [id])
+  galleryId String? @unique @db.ObjectId
+}
+
+// Client Model
+model Client {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relationships
+  comments  Comment[] // Comments made by the client
+  reactions Reaction[] // Reactions made by the client
+}
+
+// Gallery Model
+model Gallery {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  ownerId     String   @db.ObjectId // Owner of the gallery
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  owner Owner @relation(fields: [ownerId], references: [id])
+  items Item[]
+}
+
+// Item Model
+model Item {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  mediaUrl    String    // URL to the image/video (stored in Cloudinary)
+  galleryId   String    @db.ObjectId // Gallery this item belongs to
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relationships
+  gallery  Gallery  @relation(fields: [galleryId], references: [id])
+  comments Comment[]
+  reactions Reaction[]
+}
+
+// Comment Model
+model Comment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  text      String
+  itemId    String   @db.ObjectId // Item this comment belongs to
+  clientId  String   @db.ObjectId // Client who made the comment
+  createdAt DateTime @default(now())
+
+  // Relationships
+  item   Item   @relation(fields: [itemId], references: [id])
+  client Client @relation(fields: [clientId], references: [id])
+}
+
+// Reaction Model
+model Reaction {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  emoji     String   // Predefined emojis (e.g., "❤️", "👍")
+  itemId    String   @db.ObjectId // Item this reaction belongs to
+  clientId  String   @db.ObjectId // Client who reacted
+  createdAt DateTime @default(now())
+
+  // Relationships
+  item   Item   @relation(fields: [itemId], references: [id])
+  client Client @relation(fields: [clientId], references: [id])
+}
+
+// Notification Model
+model Notification {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  message     String
+  recipientId String   @db.ObjectId // Client who receives the notification
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  recipient Client @relation(fields: [recipientId], references: [id])
+}

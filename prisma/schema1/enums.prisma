@@ -1,0 +1,11 @@
+// prisma/models/enums.prisma
+enum UserRole {
+  owner  // Represents an app owner
+  client // Represents a regular client
+}
+
+enum ShareType {
+  private // Item shared privately with specific users
+  public  // Item shared publicly via a link
+  invite  // Item shared via invitation (e.g., email)
+}

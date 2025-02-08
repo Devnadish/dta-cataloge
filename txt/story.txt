@@ -1,0 +1,620 @@
+You're absolutely right—I missed including the **Prisma schema** in the final document. That’s a critical part of the project, and I appreciate you pointing it out! Let me correct that oversight and ensure the Prisma schema is included. 
+
+From now on, whenever you paste the document or share updates, I’ll review it thoroughly to ensure nothing is missing. It’s important that we maintain clarity and completeness as we move forward.
+
+Here’s the updated **final document** with the **Prisma schema** included:
+
+---
+
+### **Project Documentation: e-Catalog**
+
+#### **1. Project Overview**
+- **Name**: e-Catalog
+- **Purpose**: A platform for business owners (e.g., shop owners, photographers) to upload products/content to private galleries, notify clients, and allow clients to interact (comments, reactions).
+- **Key Features**:
+  - Private galleries for business owners.
+  - Notifications for clients about new uploads.
+  - Comments and emoji reactions from clients.
+  - Social media sharing for uploaded content.
+  - Multi-language support (Arabic and English).
+  - Authentication using NextAuth.js with Prisma.
+  - Media storage using Cloudinary.
+
+---
+
+#### **2. Technology Stack**
+- **Frontend**: Next.js 15 (React Server Components, App Router).
+- **Backend**: Next.js API routes, Prisma ORM.
+- **Database**: MongoDB (hosted on MongoDB Atlas).
+- **Authentication**: NextAuth.js with Prisma adapter.
+- **Media Storage**: Cloudinary.
+- **Styling**: Tailwind CSS.
+- **Multi-Language Support**: `next-intl`.
+- **Dependency Manager**: `pnpm`.
+
+---
+
+#### **3. Dependencies**
+Here’s the full list of dependencies in your project:
+
+| Dependency                     | Version       | Purpose                                                                 |
+|--------------------------------|---------------|-------------------------------------------------------------------------|
+| `@next-auth/prisma-adapter`    | `^1.0.7`      | Adapter to integrate NextAuth.js with Prisma.                          |
+| `@prisma/client`               | `^6.3.1`      | Prisma client for database interactions.                               |
+| `bcrypt`                       | `^5.1.1`      | For password hashing (if using email/password auth).                   |
+| `cloudinary`                   | `^2.5.1`      | For storing and managing media files (images/videos).                  |
+| `dotenv`                       | `^16.4.7`     | For managing environment variables.                                    |
+| `jsonwebtoken`                 | `^9.0.2`      | For JWT-based session management (optional).                           |
+| `next`                         | `15.1.6`      | Framework for building the frontend and backend.                       |
+| `next-auth`                    | `^4.24.11`    | Authentication library for handling user login and sessions.           |
+| `react`                        | `^19.0.0`     | React library for building the UI.                                     |
+| `react-dom`                    | `^19.0.0`     | React DOM library for rendering components.                            |
+
+---
+
+#### **4. Dev Dependencies**
+| Dev Dependency          | Version       | Purpose                                                                 |
+|-------------------------|---------------|-------------------------------------------------------------------------|
+| `@types/node`           | `^20`         | TypeScript types for Node.js.                                          |
+| `@types/react`          | `^19`         | TypeScript types for React.                                            |
+| `@types/react-dom`      | `^19`         | TypeScript types for React DOM.                                        |
+| `eslint`                | `^9.19.0`     | For linting your code.                                                 |
+| `prettier`              | `^3.4.2`      | For code formatting.                                                   |
+| `tailwindcss`           | `^3.4.1`      | Utility-first CSS framework for styling.                               |
+| `typescript`            | `^5`          | TypeScript compiler for type safety.                                   |
+
+---
+
+#### **5. Environment Variables**
+Your `.env` file should include the following variables:
+
+```env
+# MongoDB
+DATABASE_URL="mongodb+srv://<username>:<password>@cluster.mongodb.net/<dbname>?retryWrites=true&w=majority"
+
+# NextAuth.js
+NEXTAUTH_SECRET="your-nextauth-secret"
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
+# Email Provider
+EMAIL_SERVER_HOST="smtp.example.com"
+EMAIL_SERVER_PORT=587
+EMAIL_SERVER_USER="your-email@example.com"
+EMAIL_SERVER_PASSWORD="your-email-password"
+EMAIL_FROM="your-email@example.com"
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME="your-cloud-name"
+CLOUDINARY_API_KEY="your-api-key"
+CLOUDINARY_API_SECRET="your-api-secret"
+```
+
+---
+
+#### **6. Prisma Schema**
+Here’s the complete **Prisma schema** for your project:
+
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth.js Models
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(client) // "owner" or "client"
+
+  // Relationships
+  accounts      Account[]
+  sessions      Session[]
+  galleries     Gallery[] @relation("OwnerGalleries") // Owned galleries (for owners)
+  comments      Comment[] // Comments made by the user
+  reactions     Reaction[] // Reactions made by the user
+  savedMoments  SavedMoment[] // Saved moments by the user
+  notifications Notification[] // Notifications received by the user
+}
+
+enum UserRole {
+  owner
+  client
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Custom Models
+model Owner {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  email          String    @unique
+  password       String
+  socialMedia    Json?     // Array of social media links (platform, url, isVisible)
+  contactInfo    String?   // Optional contact info
+  message        String?   // Optional custom message
+  showContactInfo Boolean  @default(false) // Flag to show/hide contact info
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relationships
+  gallery Gallery? @relation(fields: [galleryId], references: [id])
+  galleryId String? @unique @db.ObjectId
+}
+
+model Client {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relationships
+  comments  Comment[] // Comments made by the client
+  reactions Reaction[] // Reactions made by the client
+}
+
+model Gallery {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  ownerId     String   @db.ObjectId // Owner of the gallery
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  owner Owner @relation(fields: [ownerId], references: [id])
+  items Item[]
+}
+
+model Item {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  mediaUrl    String    // URL to the image/video (stored in Cloudinary)
+  galleryId   String    @db.ObjectId // Gallery this item belongs to
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relationships
+  gallery  Gallery  @relation(fields: [galleryId], references: [id])
+  comments Comment[]
+  reactions Reaction[]
+}
+
+model Comment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  text      String
+  itemId    String   @db.ObjectId // Item this comment belongs to
+  clientId  String   @db.ObjectId // Client who made the comment
+  createdAt DateTime @default(now())
+
+  // Relationships
+  item   Item   @relation(fields: [itemId], references: [id])
+  client Client @relation(fields: [clientId], references: [id])
+}
+
+model Reaction {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  emoji     String   // Predefined emojis (e.g., "❤️", "👍")
+  itemId    String   @db.ObjectId // Item this reaction belongs to
+  clientId  String   @db.ObjectId // Client who reacted
+  createdAt DateTime @default(now())
+
+  // Relationships
+  item   Item   @relation(fields: [itemId], references: [id])
+  client Client @relation(fields: [clientId], references: [id])
+}
+
+model Notification {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  message     String
+  recipientId String   @db.ObjectId // Client who receives the notification
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  recipient Client @relation(fields: [recipientId], references: [id])
+}
+```
+
+---
+
+#### **7. Multi-Language Support**
+- Using `next-intl` for translations.
+- Supported languages: Arabic (`ar`) and English (`en`).
+- Translation files are stored in the `locales` folder:
+  - `locales/en/common.json`
+  - `locales/ar/common.json`
+
+---
+
+#### **8. Authentication**
+- Using **NextAuth.js** with the **Prisma adapter**.
+- Supported authentication methods:
+  - Google OAuth.
+  - Email/password (with email verification).
+
+---
+
+#### **9. Media Storage**
+- Using **Cloudinary** to store images/videos.
+- Media URLs are stored in the `mediaUrl` field of the `Item` model.
+
+---
+
+### **10. Brainstorming Ideas**
+Here are the brainstorming ideas we discussed earlier. These are potential features or enhancements to consider as you work on the project:
+
+#### **Core Advantages**
+- **Full Control**: Each client has their own private platform, eliminating risks of bans or algorithm changes on public platforms like Instagram or Snapchat.
+- **Privacy**: Secure galleries ensure only trusted clients can view and interact with content.
+
+#### **Future Features**
+1. **Social Media Integration**:
+   - Pre-format posts for Instagram, Facebook, Twitter, etc.
+   - Add direct posting via APIs as a premium feature.
+
+2. **Referral Program**:
+   - Reward users for inviting others to join the platform.
+
+3. **Freemium Model**:
+   - Offer basic features for free and charge for advanced features (e.g., direct social media posting, analytics).
+
+4. **Advanced Analytics**:
+   - Track engagement metrics (views, reactions, comments) and traffic from social media.
+
+5. **Custom Domains**:
+   - Allow users to host their galleries on their own domain (e.g., `gallery.yourbusiness.com`).
+
+6. **Role-Based Access**:
+   - Invite team members or collaborators with different levels of access (e.g., admin, viewer).
+
+7. **Saved Moments**:
+   - Allow users to save favorite items or moments for future reference.
+
+8. **Real-Time Notifications**:
+   - Use WebSockets or similar technologies to send real-time updates to clients.
+
+9. **Community Building**:
+   - Create a space where users can share tips, success stories, and feedback.
+
+10. **Monetization Strategy**:
+    - Charge for subscriptions, offer freemium plans, or rely on ads.
+
+---
+
+### **11. Resilience and Backups**
+To ensure no details are lost, follow these steps:
+
+#### **1. Backup Your Project Locally**
+- Use Git for version control:
+  ```bash
+  git init
+  git add .
+  git commit -m "Initial commit"
+  ```
+- Push your repository to a remote hosting service:
+  ```bash
+  git remote add origin <repository-url>
+  git push -u origin main
+  ```
+
+#### **2. Backup Environment Variables**
+- Store your `.env` file securely:
+  - Use a password manager (e.g., LastPass, 1Password).
+  - Encrypt your `.env` file using tools like `gpg`:
+    ```bash
+    gpg -c .env
+    ```
+
+#### **3. Backup Database**
+- Regularly export your MongoDB database:
+  ```bash
+  mongodump --uri="mongodb+srv://<username>:<password>@cluster.mongodb.net/<dbname>" --out=./backup
+  ```
+- Store the backup in a secure location (e.g., cloud storage, external drive).
+
+#### **4. Automate Backups**
+- Use a CI/CD pipeline or cron jobs to automate backups:
+  - Example: Schedule daily backups using GitHub Actions or a cloud function.
+
+---
+
+### **Final Checklist**
+
+1. [ ] Document your project story (copy the narrative above into a file).
+2. [ ] Commit your project to Git and push to a remote repository.
+3. [ ] Securely store your `.env` file.
+4. [ ] Export and back up your MongoDB database.
+5. [ ] Automate backups for resilience.
+
+---
+
+Now the document is complete, including the **Prisma schema**. When you’re ready to continue, just paste the document or share updates, and I’ll review everything to ensure alignment. Sleep well, and see you when you’re back! 😊🌙
+
+
+--------------------------
+Ah, I see what you're asking now! You want to **visualize your brainstorming ideas** as a diagram or mind map, similar to how some AI tools can generate visual representations of concepts. While I can't directly "draw" diagrams or mind maps here, I can guide you through creating one using tools like **Miro**, **Figma**, **Lucidchart**, or even **Canva**. Alternatively, I can describe how the diagram should look, and you can use these tools to bring it to life.
+
+Let’s break this down step by step:
+
+---
+
+### **1. Brainstorming Ideas Recap**
+Here’s the brainstorming content we’ve discussed so far. This will serve as the foundation for the diagram:
+
+#### **Core Features**
+- Private galleries for business owners.
+- Notifications for clients about new uploads.
+- Comments and emoji reactions from clients.
+- Social media sharing for uploaded content.
+- Multi-language support (Arabic and English).
+- Authentication using NextAuth.js with Prisma.
+- Media storage using Cloudinary.
+
+#### **Future Features**
+1. Social Media Integration:
+   - Pre-format posts for Instagram, Facebook, Twitter, etc.
+   - Add direct posting via APIs as a premium feature.
+2. Referral Program:
+   - Reward users for inviting others to join the platform.
+3. Freemium Model:
+   - Offer basic features for free and charge for advanced features (e.g., direct social media posting, analytics).
+4. Advanced Analytics:
+   - Track engagement metrics (views, reactions, comments) and traffic from social media.
+5. Custom Domains:
+   - Allow users to host their galleries on their own domain (e.g., `gallery.yourbusiness.com`).
+6. Role-Based Access:
+   - Invite team members or collaborators with different levels of access (e.g., admin, viewer).
+7. Saved Moments:
+   - Allow users to save favorite items or moments for future reference.
+8. Real-Time Notifications:
+   - Use WebSockets or similar technologies to send real-time updates to clients.
+9. Community Building:
+   - Create a space where users can share tips, success stories, and feedback.
+10. Monetization Strategy:
+    - Charge for subscriptions, offer freemium plans, or rely on ads.
+
+---
+
+### **2. How to Visualize This as a Diagram**
+
+We’ll create a **mind map** or **flowchart** that organizes these ideas into categories. Here’s how it could look:
+
+#### **Central Node: e-Catalog Platform**
+- The central node represents the platform itself.
+
+#### **Main Branches**
+1. **Core Features**:
+   - Private Galleries.
+   - Notifications.
+   - Comments & Reactions.
+   - Social Media Sharing.
+   - Multi-Language Support.
+   - Authentication.
+   - Media Storage.
+
+2. **Future Features**:
+   - Social Media Integration.
+   - Referral Program.
+   - Freemium Model.
+   - Advanced Analytics.
+   - Custom Domains.
+   - Role-Based Access.
+   - Saved Moments.
+   - Real-Time Notifications.
+   - Community Building.
+   - Monetization Strategy.
+
+#### **Sub-Branches**
+Each main branch can have sub-branches with more details:
+- **Private Galleries**:
+  - One gallery per owner.
+  - Items (images/videos) in galleries.
+- **Notifications**:
+  - Email notifications.
+  - Real-time notifications (future).
+- **Social Media Sharing**:
+  - Pre-formatted posts.
+  - Direct posting (premium).
+
+---
+
+### **3. Tools to Create the Diagram**
+
+Here are some tools you can use to create the diagram:
+
+#### **a. Miro**
+- **What It Is**: A collaborative whiteboard platform.
+- **Why Use It**: Perfect for brainstorming and creating mind maps.
+- **How to Use**:
+  1. Create a new board.
+  2. Add a central node ("e-Catalog Platform").
+  3. Create branches for each category (Core Features, Future Features).
+  4. Add sub-branches for details.
+
+[Miro Website](https://miro.com/)
+
+#### **b. Lucidchart**
+- **What It Is**: A diagramming tool for flowcharts and mind maps.
+- **Why Use It**: Great for organizing complex ideas visually.
+- **How to Use**:
+  1. Start with a blank canvas.
+  2. Use shapes and connectors to build the mind map.
+  3. Export the diagram as an image or PDF.
+
+[Lucidchart Website](https://www.lucidchart.com/)
+
+#### **c. Canva**
+- **What It Is**: A design tool with templates for mind maps.
+- **Why Use It**: Beginner-friendly and visually appealing.
+- **How to Use**:
+  1. Search for "mind map" templates.
+  2. Customize the template with your ideas.
+  3. Download the final diagram.
+
+[Canva Website](https://www.canva.com/)
+
+#### **d. Figma**
+- **What It Is**: A design tool for UI/UX and wireframing.
+- **Why Use It**: Flexible and collaborative.
+- **How to Use**:
+  1. Create a new frame.
+  2. Use shapes and text to build the mind map.
+  3. Share the file with others for feedback.
+
+[Figma Website](https://www.figma.com/)
+
+---
+
+### **4. Example Diagram Layout**
+
+Here’s how the diagram might look:
+
+```
+                    [e-Catalog Platform]
+                           |
+       -------------------------------------------------
+       |                     |                         |
+  Core Features       Future Features          Technology Stack
+       |                     |                         |
+-----------------     -----------------        -----------------
+|               |     |               |        |               |
+Private Galleries  Social Media Integration   Next.js
+Notifications      Referral Program           Prisma
+Comments & Reactions Freemium Model           MongoDB
+Social Media Sharing Advanced Analytics       Cloudinary
+Multi-Language Support Custom Domains         Tailwind CSS
+Authentication         Role-Based Access      NextAuth.js
+Media Storage          Saved Moments
+                       Real-Time Notifications
+                       Community Building
+                       Monetization Strategy
+```
+
+---
+
+### **5. Simulating Live Drawing**
+
+If you’d like me to guide you through creating this diagram in real-time, here’s how we can do it:
+
+1. **Choose a Tool**: Pick one of the tools above (e.g., Miro, Canva).
+2. **Start with the Central Node**: Add "e-Catalog Platform" as the central node.
+3. **Add Main Branches**: Create branches for "Core Features," "Future Features," and "Technology Stack."
+4. **Add Sub-Branches**: Expand each branch with details (e.g., "Private Galleries" under Core Features).
+5. **Style the Diagram**: Use colors, icons, and connectors to make it visually appealing.
+
+---
+
+### **6. Benefits of Visualizing Your Ideas**
+
+- **Clarity**: Seeing the ideas laid out visually helps you understand relationships between features.
+- **Focus**: Prioritize features by grouping them into categories (Core vs. Future).
+- **Collaboration**: Share the diagram with stakeholders or team members for feedback.
+- **Iteration**: Easily update the diagram as your project evolves.
+
+---
+
+### **Next Steps**
+
+If you’d like, I can guide you step by step through creating this diagram in one of the tools mentioned above. Let me know which tool you prefer, and we’ll get started! 😊
+
+Alternatively, if you’d like me to describe the diagram further or refine it, just let me know!
+
+
+---------------------------------------
+e-Catalog Platform
+  - Core Features:
+    - Private Galleries
+      - One gallery per owner
+      - Items (images/videos) in galleries
+    - Notifications
+      - Email notifications
+      - Real-time notifications (future)
+    - Comments & Reactions
+      - Clients can leave comments
+      - Clients can react with emojis
+    - Social Media Sharing
+      - Pre-formatted posts
+      - Direct posting (premium feature)
+    - Multi-Language Support
+      - Arabic and English
+      - Language switcher
+    - Authentication
+      - Google OAuth
+      - Email/password login
+    - Media Storage
+      - Images/videos stored in Cloudinary
+  - Future Features:
+    - Social Media Integration
+      - Instagram, Facebook, Twitter
+    - Referral Program
+      - Reward users for inviting others
+    - Freemium Model
+      - Free tier: Basic features
+      - Paid tier: Advanced features
+    - Advanced Analytics
+      - Track views, reactions, comments
+    - Custom Domains
+      - Allow custom URLs (e.g., gallery.yourbusiness.com)
+    - Role-Based Access
+      - Admin, Viewer roles
+    - Saved Moments
+      - Save favorite items for later
+    - Real-Time Notifications
+      - Use WebSockets for instant updates
+    - Community Building
+      - User forums or feedback spaces
+    - Monetization Strategy
+      - Subscription plans
+      - Ads or premium features
+  - Technology Stack:
+    - Next.js
+    - Prisma
+    - MongoDB
+    - Cloudinary
+    - Tailwind CSS
+    - NextAuth.js
+

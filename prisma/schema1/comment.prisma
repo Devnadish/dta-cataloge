@@ -1,0 +1,11 @@
+// prisma/models/comment.prisma
+model Comment {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId // Unique ID for the comment
+  text     String   // Text content of the comment
+  itemId   String   @db.ObjectId // ID of the item this comment belongs to
+  clientId String   @db.ObjectId // ID of the client who made the comment
+
+  // Relationships
+  item   Item   @relation(fields: [itemId], references: [id]) // Links to the Item model
+  client Client @relation(fields: [clientId], references: [id]) // Links to the Client model
+}

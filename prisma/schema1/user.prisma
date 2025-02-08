@@ -1,0 +1,19 @@
+// prisma/models/user.prisma
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(client) // "owner" or "client"
+
+  // Relationships
+  accounts      Account[]
+  sessions      Session[]
+
+  clientId      String?   @db.ObjectId
+  client        Client?   @relation
+
+  ownerId       String?   @db.ObjectId
+  owner         Owner?    @relation
+}

@@ -1,0 +1,11 @@
+model Owner {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  contactInfo String?
+  socialMedia Json?
+  message     String?
+
+  userId      String   @db.ObjectId @unique
+  user        User     @relation(fields: [userId], references: [id]) // Fields/references here
+
+  galleries   Gallery[]
+}
