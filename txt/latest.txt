@@ -1,4 +1,4 @@
-Certainly! Below is the **full consolidated and updated document** that combines all the sections, including the Prisma schema, brainstorming ideas, scaling strategy, marketing plan, error resolution steps, and everything we’ve worked on so far. This serves as a single comprehensive file for your project, making it easy to sync and continue working tomorrow.
+Got it! Below is the updated **Project Documentation** with tomorrow's tasks added as a new section. This ensures all planned activities are clearly outlined and integrated into the document for easy reference.
 
 ---
 
@@ -112,7 +112,7 @@ model Account {
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?  @db.String
+  id_token          String?  @db.ObjectId
   session_state     String?
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([provider, providerAccountId])
@@ -239,30 +239,46 @@ enum ShareType {
 
 ---
 
-#### **7. Multi-Language Support**
-- Using `next-intl` for translations.
-- Supported languages: Arabic (`ar`) and English (`en`).
-- Translation files are stored in the `locales` folder:
-  - `locales/en/common.json`
-  - `locales/ar/common.json`
+### **7. Tomorrow's Tasks**
+
+#### **Task 1: Upload Media to Cloudinary**
+- Implement functionality to upload media (images/videos) to Cloudinary.
+- Store the resulting URL in the `mediaUrl` field of the `Item` model.
+- Steps:
+  1. Configure Cloudinary in the backend.
+  2. Create an API route (`/api/upload`) to handle file uploads.
+  3. Integrate the upload functionality into the frontend.
 
 ---
 
-#### **8. Authentication**
-- Using **NextAuth.js** with the **Prisma adapter**.
-- Supported authentication methods:
-  - Google OAuth.
-  - Email/password (with email verification).
+#### **Task 2: Add Comments and Reactions**
+- Allow clients to add comments and reactions to items in a gallery.
+- Steps:
+  1. Create API routes for adding comments (`/api/comments`) and reactions (`/api/reactions`).
+  2. Update the frontend to include forms for submitting comments and reactions.
+  3. Test the functionality to ensure data is saved correctly in the database.
 
 ---
 
-#### **9. Media Storage**
-- Using **Cloudinary** to store images/videos.
-- Media URLs are stored in the `mediaUrl` field of the `Item` model.
+#### **Task 3: Finalize Authentication**
+- Ensure authentication is fully functional using **NextAuth.js**.
+- Steps:
+  1. Configure Google OAuth and email/password authentication.
+  2. Protect private routes using middleware or `getSession`.
+  3. Test login/logout flows for both authentication methods.
 
 ---
 
-### **10. Scaling Strategy**
+#### **Task 4: Implement Multi-Language Support**
+- Finalize multi-language support using `next-intl`.
+- Steps:
+  1. Add translation files for Arabic (`ar`) and English (`en`) in the `locales` folder.
+  2. Configure `next-intl` middleware to handle language detection.
+  3. Use the `useTranslations` hook to display translated text in components.
+
+---
+
+### **8. Scaling Strategy**
 #### **Phase 1: MVP (Minimum Viable Product)**
 - Focus on core features:
   - Private gallery with upload functionality.
@@ -294,7 +310,7 @@ enum ShareType {
 
 ---
 
-### **11. Marketing Plan**
+### **9. Marketing Plan**
 #### **Messaging**
 - Emphasize the platform’s **unique advantages**:
   - Full control over content and audience.
@@ -312,7 +328,7 @@ enum ShareType {
 
 ---
 
-### **12. Error Resolution**
+### **10. Error Resolution**
 The `404 Not Found` error indicates that the `/dashboard/galleries` route is not properly defined or implemented. Here’s how to fix it:
 1. **Check Route Definition**:
    - Ensure the file `app/dashboard/galleries/page.tsx` exists and exports a valid React component.
@@ -347,27 +363,4 @@ The `404 Not Found` error indicates that the `/dashboard/galleries` route is not
 
 ---
 
-### **13. Resilience and Backups**
-To ensure no details are lost, follow these steps:
-1. **Backup Your Project Locally**:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   ```
-
-2. **Backup Environment Variables**:
-   - Store your `.env` file securely using tools like LastPass or encrypt it with `gpg`.
-
-3. **Backup Database**:
-   ```bash
-   mongodump --uri="mongodb+srv://<username>:<password>@cluster.mongodb.net/" --out=./backup
-   ```
-
----
-
-This document now includes everything you need to build, scale, and maintain your platform. Let me know if you need further clarification or assistance! 😊
-
----
-
-Feel free to review this document and let me know where you'd like to start tomorrow. We can dive deeper into any section or begin implementing specific features.
+This updated document now includes tomorrow's tasks alongside the existing content. Let me know if you'd like to refine any section further! 😊
